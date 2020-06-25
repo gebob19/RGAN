@@ -20,8 +20,39 @@ from math import ceil
 from sklearn.metrics.pairwise import rbf_kernel
 from sklearn.preprocessing import MinMaxScaler
 
+# -- what we care about -- # 
+def sine_wave(seq_length=30, num_samples=28*5*100, num_signals=1,
+        freq_low=1, freq_high=5, amplitude_low = 0.1, amplitude_high=0.9, **kwargs):
+    ix = np.arange(seq_length) + 1
+    samples = []
+    for i in range(num_samples):
+        signals = []
+        for i in range(num_signals):
+            f = np.random.uniform(low=freq_high, high=freq_low)     # frequency
+            A = np.random.uniform(low=amplitude_high, high=amplitude_low)        # amplitude
+            # offset
+            offset = np.random.uniform(low=-np.pi, high=np.pi)
+            signals.append(A*np.sin(2*np.pi*f*ix/float(seq_length) + offset))
+        samples.append(np.array(signals).T)
+    # the shape of the samples is num_samples x seq_length x num_signals
+    samples = np.array(samples)
+    return samples
+
+import sys 
+import pathlib 
+sys.path.append(str(pathlib.Path.home()/'Documents/stocks/penguin/'))
+from generate.stock_gen import symbol_gen
+
+def stock_wave(seq_length=30, num_samples=28*5*100, num_signals=1, **kwargs):
+    assert num_signals == 5, 'must have signal of 5'
+
+    r = Router('daily')
+    gen = symbol_gen(r, r.available(), num_samples, seq_length, False)
+    data = gen.__next__().numpy()
+    return data 
+
 # --- to do with loading --- #
-def get_samples_and_labels(settings):
+def get_samples_and_labels(settings, stock_flag):
     """
     Parse settings options to load or generate correct type of data,
     perform test/train split as necessary, and reform into 'samples' and 'labels'
@@ -49,7 +80,7 @@ def get_samples_and_labels(settings):
                 'freq_high', 'amplitude_low', 'amplitude_high', 'scale',
                 'full_mnist']
         data_settings = dict((k, settings[k]) for k in data_vars if k in settings.keys())
-        samples, pdf, labels = get_data(settings['data'], data_settings)
+        samples, pdf, labels = get_data(settings['data'], data_settings, stock_flag)
         if 'multivariate_mnist' in settings and settings['multivariate_mnist']:
             seq_length = samples.shape[1]
             samples = samples.reshape(-1, int(np.sqrt(seq_length)), int(np.sqrt(seq_length)))
@@ -107,7 +138,7 @@ def get_samples_and_labels(settings):
 
     return samples, pdf, labels
 
-def get_data(data_type, data_options=None):
+def get_data(data_type, data_options=None, stock_flag=False):
     """
     Helper/wrapper function to get the requested data.
     """
@@ -119,7 +150,11 @@ def get_data(data_type, data_options=None):
         pdf = data_dict['pdf']
         labels = data_dict['labels']
     elif data_type == 'sine':
-        samples = sine_wave(**data_options)
+        ## HERE ---- 
+        if stock_flag: 
+            samples = stock_wave(**data_options)
+        else:
+            samples = sine_wave(**data_options)
     elif data_type == 'mnist':
         if data_options['full_mnist']:
             samples, labels = mnist()
@@ -415,22 +450,6 @@ def resampled_eICU(seq_length=16, resample_rate_in_min=15,
     print('Saved to file!')
     return samples, pids
 
-def sine_wave(seq_length=30, num_samples=28*5*100, num_signals=1,
-        freq_low=1, freq_high=5, amplitude_low = 0.1, amplitude_high=0.9, **kwargs):
-    ix = np.arange(seq_length) + 1
-    samples = []
-    for i in range(num_samples):
-        signals = []
-        for i in range(num_signals):
-            f = np.random.uniform(low=freq_high, high=freq_low)     # frequency
-            A = np.random.uniform(low=amplitude_high, high=amplitude_low)        # amplitude
-            # offset
-            offset = np.random.uniform(low=-np.pi, high=np.pi)
-            signals.append(A*np.sin(2*np.pi*f*ix/float(seq_length) + offset))
-        samples.append(np.array(signals).T)
-    # the shape of the samples is num_samples x seq_length x num_signals
-    samples = np.array(samples)
-    return samples
 
 def periodic_kernel(T, f=1.45/30, gamma=7.0, A=0.1):
     """

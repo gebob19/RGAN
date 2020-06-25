@@ -17,6 +17,8 @@ from mmd import rbf_mmd2, median_pairwise_distance, mix_rbf_mmd2_and_ratio
 
 tf.logging.set_verbosity(tf.logging.ERROR)
 
+STOCK_FLAG = False 
+
 # --- get settings --- #
 # parse command line arguments, or use defaults
 parser = utils.rgan_options_parser()
@@ -25,7 +27,7 @@ settings = vars(parser.parse_args())
 if settings['settings_file']: settings = utils.load_settings_from_file(settings)
 
 # --- get data, split --- #
-samples, pdf, labels = data_utils.get_samples_and_labels(settings)
+samples, pdf, labels = data_utils.get_samples_and_labels(settings, STOCK_FLAG)
 
 # --- save settings, data --- #
 print('Ready to run with settings:')
@@ -182,7 +184,7 @@ for epoch in range(num_epochs):
             vis_sample = sess.run(G_sample, feed_dict={Z: vis_Z})
         plotting.visualise_at_epoch(vis_sample, data, 
                 predict_labels, one_hot, epoch, identifier, num_epochs,
-                resample_rate_in_min, multivariate_mnist, seq_length, labels=vis_C)
+                resample_rate_in_min, multivariate_mnist, seq_length, vis_C, STOCK_FLAG)
    
     # compute mmd2 and, if available, prob density
     if epoch % eval_freq == 0:

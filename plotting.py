@@ -12,7 +12,7 @@ from data_utils import scale_data
 
 def visualise_at_epoch(vis_sample, data, predict_labels, one_hot, epoch,
         identifier, num_epochs, resample_rate_in_min, multivariate_mnist,
-        seq_length, labels):
+        seq_length, labels, stock_flag):
     # TODO: what's with all these arguments
     if data == 'mnist':
         if predict_labels:
@@ -37,10 +37,34 @@ def visualise_at_epoch(vis_sample, data, predict_labels, one_hot, epoch,
                 identifier=identifier,
                 idx=epoch)
     else:
-        save_plot_sample(vis_sample, epoch, identifier, n_samples=6,
-                num_epochs=num_epochs)
+        if stock_flag: 
+            save_plot_stock_sample(vis_sample, epoch, identifier, n_samples=6,
+                num_epochs=num_epochs)  
+        else: 
+            save_plot_sample(vis_sample, epoch, identifier, n_samples=6,
+                    num_epochs=num_epochs)
 
     return True
+
+
+## -- my code -- #
+import sys 
+import pathlib  
+sys.path.append(str(pathlib.Path.home()/'Documents/stocks/penguin/'))
+from scan.scan_single import plot
+
+def save_plot_stock_sample(samples, idx, identifier, n_samples=6, num_epochs=None, ncol=2):
+    fake = samples[0]
+    obj = {
+        'high': fake[:, 2],
+        'low': fake[:, 3],
+        'open': fake[:, 0],
+        'close': fake[:, 1],
+    }
+    p = plot('fake', obj)
+    export_png(p, filename="./experiments/plots/stock_{}.png".format(idx))
+
+## -- my code -- #
 
 def save_plot_sample(samples, idx, identifier, n_samples=6, num_epochs=None, ncol=2):
     assert n_samples <= samples.shape[0]
@@ -58,10 +82,11 @@ def save_plot_sample(samples, idx, identifier, n_samples=6, num_epochs=None, nco
     fig, axarr = plt.subplots(nrow, ncol, sharex=True, figsize=(6, 6))
     for m in range(nrow):
         for n in range(ncol):
-            # first column
-            sample = samples[n*nrow + m, :, 0]
-            axarr[m, n].plot(x_points, sample, color=col)
-            axarr[m, n].set_ylim(-1, 1)
+            for i in range(samples.shape[-1]):
+                # first column
+                sample = samples[n*nrow + m, :, i]
+                axarr[m, n].plot(x_points, sample, color=col)
+                axarr[m, n].set_ylim(-1, 1)
     for n in range(ncol):
         axarr[-1, n].xaxis.set_ticks(range(0, sample_length, int(sample_length/4)))
     fig.suptitle(idx)
@@ -69,7 +94,6 @@ def save_plot_sample(samples, idx, identifier, n_samples=6, num_epochs=None, nco
     fig.savefig("./experiments/plots/" + identifier + "_epoch" + str(idx).zfill(4) + ".png")
     plt.clf()
     plt.close()
-    return
 
 def save_plot_interpolate(input_samples, samples, idx, identifier,  num_epochs=None, distances=None, sigma=1):
     """ very boilerplate, unsure how to make nicer """
