@@ -264,19 +264,25 @@ def generator(z, hidden_units_g, seq_length, batch_size, num_generated_features,
         else:
             inputs = z
 
-        cell = LSTMCell(num_units=hidden_units_g,
-                           state_is_tuple=True,
-                           initializer=lstm_initializer,
-                           bias_start=bias_start,
-                           reuse=reuse)
-        rnn_outputs, rnn_states = tf.nn.dynamic_rnn(
-            cell=cell,
-            dtype=tf.float32,
-            sequence_length=[seq_length]*batch_size,
-            inputs=inputs)
+        ## TIMEGAN SPECIFICATIONS 
+        def cell():
+            # d =  LSTMCell(num_units=hidden_units_g,
+            #                 state_is_tuple=True,
+            #                 initializer=lstm_initializer,
+            #                 bias_start=bias_start, reuse=reuse)
+            d = tf.nn.rnn_cell.GRUCell(num_units=hidden_units_g, activation=tf.nn.tanh)
+            return d 
+
+        e_cell = tf.nn.rnn_cell.MultiRNNCell([cell() for _ in range(3)])    
+        rnn_outputs, rnn_states = tf.nn.dynamic_rnn(e_cell, inputs, dtype=tf.float32, sequence_length = [seq_length]*batch_size)        
+
+#         rnn_outputs, rnn_states = tf.nn.dynamic_rnn(
+#             cell=cell,
+#             dtype=tf.float32,
+#             sequence_length=[seq_length]*batch_size,
+#             inputs=inputs)
         rnn_outputs_2d = tf.reshape(rnn_outputs, [-1, hidden_units_g])
         logits_2d = tf.matmul(rnn_outputs_2d, W_out_G) + b_out_G
-#        output_2d = tf.multiply(tf.nn.tanh(logits_2d), scale_out_G)
         output_2d = tf.nn.tanh(logits_2d)
         output_3d = tf.reshape(output_2d, [-1, seq_length, num_generated_features])
     return output_3d
@@ -306,13 +312,24 @@ def discriminator(x, hidden_units_d, seq_length, batch_size, reuse=False,
             mean_over_batch = tf.stack([tf.reduce_mean(x, axis=0)]*batch_size, axis=0)
             inputs = tf.concat([x, mean_over_batch], axis=2)
 
-        cell = tf.contrib.rnn.LSTMCell(num_units=hidden_units_d, 
-                state_is_tuple=True,
-                reuse=reuse)
-        rnn_outputs, rnn_states = tf.nn.dynamic_rnn(
-            cell=cell,
-            dtype=tf.float32,
-            inputs=inputs)
+        # cell = tf.contrib.rnn.LSTMCell(num_units=hidden_units_d, 
+        #         state_is_tuple=True,
+        #         reuse=reuse)
+        # rnn_outputs, rnn_states = tf.nn.dynamic_rnn(
+        #     cell=cell,
+        #     dtype=tf.float32,
+        #     inputs=inputs)
+
+
+        ## TIMEGAN SPECIFICATIONS 
+        def cell():
+            d = tf.nn.rnn_cell.GRUCell(num_units=hidden_units_d, activation=tf.nn.tanh)
+            return d 
+
+        e_cell = tf.nn.rnn_cell.MultiRNNCell([cell() for _ in range(3)])    
+        rnn_outputs, rnn_states = tf.nn.dynamic_rnn(e_cell, inputs, dtype=tf.float32, sequence_length = [seq_length]*batch_size)        
+
+
 #        logit_final = tf.matmul(rnn_outputs[:, -1], W_final_D) + b_final_D
         logits = tf.einsum('ijk,km', rnn_outputs, W_out_D) + b_out_D
 #        rnn_outputs_flat = tf.reshape(rnn_outputs, [-1, hidden_units_d])

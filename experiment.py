@@ -18,6 +18,7 @@ from mmd import rbf_mmd2, median_pairwise_distance, mix_rbf_mmd2_and_ratio
 tf.logging.set_verbosity(tf.logging.ERROR)
 
 STOCK_FLAG = False 
+TIMEGAN = True
 
 # --- get settings --- #
 # parse command line arguments, or use defaults
@@ -26,8 +27,15 @@ settings = vars(parser.parse_args())
 # if a settings file is specified, it overrides command line arguments/defaults
 if settings['settings_file']: settings = utils.load_settings_from_file(settings)
 
+if TIMEGAN: 
+    settings['hidden_units_g'] = 4 * 5
+    settings['hidden_units_d'] = 4 * 5
+    
+
+
 # --- get data, split --- #
 samples, pdf, labels = data_utils.get_samples_and_labels(settings, STOCK_FLAG)
+
 
 # --- save settings, data --- #
 print('Ready to run with settings:')

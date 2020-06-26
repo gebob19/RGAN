@@ -20,23 +20,33 @@ from math import ceil
 from sklearn.metrics.pairwise import rbf_kernel
 from sklearn.preprocessing import MinMaxScaler
 
+import sys 
+import pathlib 
+sys.path.append(str(pathlib.Path.home()/'Documents/stocks/penguin/'))
+
+from generate.timegan.data_loading import sine_data_generation
+
 # -- what we care about -- # 
 def sine_wave(seq_length=30, num_samples=28*5*100, num_signals=1,
         freq_low=1, freq_high=5, amplitude_low = 0.1, amplitude_high=0.9, **kwargs):
-    ix = np.arange(seq_length) + 1
-    samples = []
-    for i in range(num_samples):
-        signals = []
-        for i in range(num_signals):
-            f = np.random.uniform(low=freq_high, high=freq_low)     # frequency
-            A = np.random.uniform(low=amplitude_high, high=amplitude_low)        # amplitude
-            # offset
-            offset = np.random.uniform(low=-np.pi, high=np.pi)
-            signals.append(A*np.sin(2*np.pi*f*ix/float(seq_length) + offset))
-        samples.append(np.array(signals).T)
-    # the shape of the samples is num_samples x seq_length x num_signals
-    samples = np.array(samples)
-    return samples
+    # time gan 
+    data = sine_data_generation(num_samples, seq_length, num_signals)
+    return np.array(data)
+
+    # ix = np.arange(seq_length) + 1
+    # samples = []
+    # for i in range(num_samples):
+    #     signals = []
+    #     for i in range(num_signals):
+    #         f = np.random.uniform(low=freq_high, high=freq_low)     # frequency
+    #         A = np.random.uniform(low=amplitude_high, high=amplitude_low)        # amplitude
+    #         # offset
+    #         offset = np.random.uniform(low=-np.pi, high=np.pi)
+    #         signals.append(A*np.sin(2*np.pi*f*ix/float(seq_length) + offset))
+    #     samples.append(np.array(signals).T)
+    # # the shape of the samples is num_samples x seq_length x num_signals
+    # samples = np.array(samples)
+    # return samples
 
 import sys 
 import pathlib 
